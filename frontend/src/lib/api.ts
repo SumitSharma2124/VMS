@@ -29,8 +29,11 @@ api.interceptors.response.use(
 )
 
 export function errorMessage(error: unknown): string {
-  if (axios.isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message ?? 'Something went wrong. Please try again.'
+  if (axios.isAxiosError<{ message?: string; error?: string }>(error)) {
+    if (error.response?.data?.message) return error.response.data.message
+    if (error.response?.data?.error) return error.response.data.error
+    if (error.response) return `Request failed (${error.response.status})`
+    if (error.code === 'ERR_NETWORK') return 'Cannot reach the backend. Check that Spring Boot is running.'
   }
   return 'Something went wrong. Please try again.'
 }
