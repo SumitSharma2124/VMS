@@ -9,8 +9,11 @@ import { Approvals } from '@/pages/admin/Approvals'
 import { Invite } from '@/pages/admin/Invite'
 import { Register } from '@/pages/Register'
 import { RequestSent } from '@/pages/RequestSent'
-import { AdminHome, GuardHome, NotFound } from '@/pages/Placeholders'
+import { AdminHome, NotFound } from '@/pages/Placeholders'
 import { useAuthStore } from '@/store/auth'
+import { GuardLayout } from '@/layouts/GuardLayout'
+import { Scan } from '@/pages/guard/Scan'
+import { Overview } from '@/pages/guard/Overview'
 
 function RootRedirect() {
   const role = useAuthStore((state) => state.role)
@@ -35,8 +38,12 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: '/guard/*',
-    element: <ProtectedRoute role="GUARD"><GuardHome /></ProtectedRoute>,
+    path: '/guard',
+    element: <ProtectedRoute role="GUARD"><GuardLayout /></ProtectedRoute>,
+    children: [
+      { index: true, element: <Scan /> },
+      { path: 'overview', element: <Overview /> },
+    ],
   },
   { path: '/', element: <RootRedirect /> },
   { path: '*', element: <NotFound /> },

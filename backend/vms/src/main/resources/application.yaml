@@ -37,6 +37,8 @@ app:
     local-path: ${STORAGE_LOCAL_PATH:./uploads}
   visit:
     default-minutes: ${VISIT_DEFAULT_MINUTES:120}
+  gate:
+    min-stay-seconds: ${GATE_MIN_STAY_SECONDS:30}
 
 management:
   endpoints:

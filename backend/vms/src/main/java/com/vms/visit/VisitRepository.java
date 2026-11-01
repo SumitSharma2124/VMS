@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 import jakarta.persistence.LockModeType;
 
@@ -18,6 +19,15 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
     List<Visit> findByOrgIdAndStatusOrderByRequestedAtAsc(Long orgId, VisitStatus status);
 
     boolean existsByOrgIdAndVisitorIdAndStatus(Long orgId, Long visitorId, VisitStatus status);
+
+    long countByOrgIdAndStatusIn(Long orgId, Collection<VisitStatus> statuses);
+
+    @Query("select v from Visit v where v.org.id = :orgId and v.status in :statuses order by v.expectedEndTime asc")
+    List<Visit> findByOrgIdAndStatusIn(@Param("orgId") Long orgId, @Param("statuses") Collection<VisitStatus> statuses);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select v from Visit v where v.id = :visitId")
+    Optional<Visit> findForUpdateByVisitId(@Param("visitId") Long visitId);
 
     @EntityGraph(attributePaths = "visitor")
     Page<Visit> findByOrgIdAndStatus(Long orgId, VisitStatus status, Pageable pageable);

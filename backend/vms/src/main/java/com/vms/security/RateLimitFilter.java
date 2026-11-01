@@ -16,7 +16,6 @@ import java.util.Map;
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final long LIMIT = 20;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -31,16 +30,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        if (!request.getRequestURI().startsWith("/api/public/")) {
+        String path = request.getRequestURI();
+        if (!path.startsWith("/api/public/") && !path.equals("/api/guard/scan")) {
             filterChain.doFilter(request, response);
             return;
         }
-        String key = "rate-limit:" + request.getRemoteAddr();
+        long limit = path.equals("/api/guard/scan") ? 60 : 20;
+        String key = "rate-limit:" + (path.equals("/api/guard/scan") ? "guard:" : "public:") + request.getRemoteAddr();
         Long count = redisTemplate.opsForValue().increment(key);
         if (count != null && count == 1) {
             redisTemplate.expire(key, Duration.ofMinutes(1));
         }
-        if (count != null && count > LIMIT) {
+        if (count != null && count > limit) {
             response.setStatus(429);
             response.setContentType("application/json");
             objectMapper.writeValue(response.getOutputStream(), Map.of(
