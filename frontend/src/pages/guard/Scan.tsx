@@ -26,6 +26,7 @@ export function Scan() {
   const [manualToken, setManualToken] = useState('')
   const [result, setResult] = useState<ScanResult | null>(null)
   const [cameraError, setCameraError] = useState(false)
+  const [cameraErrorMessage, setCameraErrorMessage] = useState('')
   const lastToken = useRef<string | undefined>(undefined)
   const scan = useMutation({
     mutationFn: async (qrToken: string) => (await api.post<ScanResult>('/guard/scan', { qrToken })).data,
@@ -51,12 +52,20 @@ export function Scan() {
       <CardHeader><CardTitle>Scan visitor pass</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         {!cameraError && !result ? <Scanner
-          constraints={{ facingMode: 'environment' }}
+          constraints={{ facingMode: { ideal: 'environment' } }}
+          formats={['qr_code']}
+          paused={Boolean(result)}
           onScan={(codes) => codes[0]?.rawValue && submit(codes[0].rawValue)}
-          onError={() => setCameraError(true)}
+          onError={(error) => {
+            setCameraErrorMessage(`${error.kind}: ${error.message}`)
+            setCameraError(['permission-denied', 'no-camera', 'in-use', 'overconstrained',
+              'insecure-context', 'unsupported', 'security', 'type-error'].includes(error.kind))
+          }}
         /> : <div className="space-y-3 rounded-md border p-5 text-sm">
           <p>Camera access failed or the QR code could not be read.</p>
-          <Button onClick={() => setCameraError(false)}>Retry camera</Button>
+          {cameraErrorMessage && <p className="text-destructive">{cameraErrorMessage}</p>}
+          {!window.isSecureContext && <p className="text-destructive">Open this page using HTTPS. Camera access is blocked on plain HTTP.</p>}
+          <Button onClick={() => { setCameraErrorMessage(''); setCameraError(false) }}>Retry camera</Button>
         </div>}
         <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); submit(manualToken) }}>
           <Input value={manualToken} maxLength={64} placeholder="Paste QR token" onChange={(event) => setManualToken(event.target.value)} />
