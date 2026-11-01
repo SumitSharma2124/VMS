@@ -110,6 +110,11 @@ public class OrgService {
             created.setActive(true);
             return qrRepository.save(created);
         });
+        String currentPayload = payload(organization.getSlug());
+        if (!currentPayload.equals(qr.getQrCodeValue())) {
+            qr.setQrCodeValue(currentPayload);
+            qrRepository.save(qr);
+        }
         return qrService.generatePng(qr.getQrCodeValue(), 512);
     }
 
