@@ -4,6 +4,7 @@ import com.vms.common.security.ApiAccessDeniedHandler;
 import com.vms.common.security.ApiAuthenticationEntryPoint;
 import com.vms.security.JwtAuthFilter;
 import com.vms.security.JwtProperties;
+import com.vms.security.RateLimitFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -34,7 +35,8 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             ObjectMapper objectMapper,
-            JwtAuthFilter jwtAuthFilter
+            JwtAuthFilter jwtAuthFilter,
+            RateLimitFilter rateLimitFilter
     ) throws Exception {
 
         http
@@ -57,6 +59,7 @@ public class SecurityConfig {
             )
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable())
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

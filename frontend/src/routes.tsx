@@ -1,6 +1,10 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Login } from '@/pages/Login'
+import { RegisterOrg } from '@/pages/RegisterOrg'
+import { AdminLayout } from '@/layouts/AdminLayout'
+import { OrgSetup } from '@/pages/admin/OrgSetup'
+import { Guards } from '@/pages/admin/Guards'
 import { AdminHome, GuardHome, NotFound } from '@/pages/Placeholders'
 import { useAuthStore } from '@/store/auth'
 
@@ -11,9 +15,16 @@ function RootRedirect() {
 
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
+  { path: '/register-org', element: <RegisterOrg /> },
   {
-    path: '/admin/*',
-    element: <ProtectedRoute role="ADMIN"><AdminHome /></ProtectedRoute>,
+    path: '/admin',
+    element: <ProtectedRoute role="ADMIN"><AdminLayout /></ProtectedRoute>,
+    children: [
+      { index: true, element: <AdminHome /> },
+      { path: 'organization', element: <OrgSetup /> },
+      { path: 'guards', element: <Guards /> },
+      { path: '*', element: <AdminHome /> },
+    ],
   },
   {
     path: '/guard/*',

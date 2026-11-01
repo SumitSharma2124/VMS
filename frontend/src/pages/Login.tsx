@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -66,6 +67,9 @@ export function Login() {
             <Button className="w-full" type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? 'Signing in...' : 'Sign in'}
             </Button>
+            <Link className="block text-center text-sm text-primary hover:underline" to="/register-org">
+              Register your organization
+            </Link>
           </form>
         </CardContent>
       </Card>
