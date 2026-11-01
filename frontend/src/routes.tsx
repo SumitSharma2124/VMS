@@ -5,6 +5,8 @@ import { RegisterOrg } from '@/pages/RegisterOrg'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { OrgSetup } from '@/pages/admin/OrgSetup'
 import { Guards } from '@/pages/admin/Guards'
+import { Register } from '@/pages/Register'
+import { RequestSent } from '@/pages/RequestSent'
 import { AdminHome, GuardHome, NotFound } from '@/pages/Placeholders'
 import { useAuthStore } from '@/store/auth'
 
@@ -16,6 +18,8 @@ function RootRedirect() {
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/register-org', element: <RegisterOrg /> },
+  { path: '/register', element: <Register /> },
+  { path: '/request-sent', element: <RequestSent /> },
   {
     path: '/admin',
     element: <ProtectedRoute role="ADMIN"><AdminLayout /></ProtectedRoute>,

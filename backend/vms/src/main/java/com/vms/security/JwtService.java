@@ -109,7 +109,7 @@ public class JwtService {
 
 class Claims extends HashMap<String, Object> {
     String getId() { return (String) get("jti"); }
-    String getSubject() { return (String) get("sub"); }
+    String getSubject() { return String.valueOf(get("sub")); }
     java.util.Date getExpiration() {
         return new java.util.Date(((Number) get("exp")).longValue() * 1000);
     }
