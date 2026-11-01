@@ -32,9 +32,8 @@ function QrCamera({ onScan, onError }: { onScan: (value: string) => void; onErro
     reader.decodeFromConstraints(
       { video: { facingMode: { ideal: 'environment' } } },
       videoRef.current!,
-      (result, error) => {
+      (result) => {
         if (result) onScan(result.getText())
-        else if (error && error.name !== 'NotFoundException') onError(error)
       },
     ).then((value) => {
       if (cancelled) value.stop()
