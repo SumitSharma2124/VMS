@@ -34,6 +34,9 @@ public class Organization {
     @Column(name = "contact_number")
     private String contactNumber;
 
+    @Column(nullable = false, length = 50)
+    private String timezone = "Asia/Kolkata";
+
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
