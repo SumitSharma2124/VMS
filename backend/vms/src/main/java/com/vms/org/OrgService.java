@@ -10,9 +10,11 @@ import com.vms.user.AdminRepository;
 import com.vms.user.Guard;
 import com.vms.user.GuardRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.vms.common.security.AuditLogger;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -30,7 +32,9 @@ public class OrgService {
     private final QrService qrService;
     private final String frontendUrl;
     private final SecureRandom random = new SecureRandom();
+    private final AuditLogger auditLogger;
 
+    @Autowired
     public OrgService(
             OrganizationRepository organizationRepository,
             AdminRepository adminRepository,
@@ -38,7 +42,8 @@ public class OrgService {
             RegistrationQrRepository qrRepository,
             PasswordEncoder passwordEncoder,
             QrService qrService,
-            @Value("${app.frontend-url}") String frontendUrl
+            @Value("${app.frontend-url}") String frontendUrl,
+            AuditLogger auditLogger
     ) {
         this.organizationRepository = organizationRepository;
         this.adminRepository = adminRepository;
@@ -47,6 +52,14 @@ public class OrgService {
         this.passwordEncoder = passwordEncoder;
         this.qrService = qrService;
         this.frontendUrl = frontendUrl;
+        this.auditLogger = auditLogger;
+    }
+
+    public OrgService(OrganizationRepository organizationRepository, AdminRepository adminRepository,
+                      GuardRepository guardRepository, RegistrationQrRepository qrRepository,
+                      PasswordEncoder passwordEncoder, QrService qrService, String frontendUrl) {
+        this(organizationRepository, adminRepository, guardRepository, qrRepository,
+                passwordEncoder, qrService, frontendUrl, null);
     }
 
     @Transactional
@@ -129,7 +142,9 @@ public class OrgService {
         guard.setPasswordHash(passwordEncoder.encode(request.password()));
         guard.setPhoneNumber(request.phone());
         guard.setStatus(Guard.Status.ACTIVE);
-        return GuardResponse.from(guardRepository.save(guard));
+        Guard saved = guardRepository.save(guard);
+        if (auditLogger != null) auditLogger.action(adminId, orgId, null, "CREATE_GUARD");
+        return GuardResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -142,6 +157,7 @@ public class OrgService {
         Guard guard = guardRepository.findByGuardIdAndOrgId(guardId, orgId)
                 .orElseThrow(() -> new NotFoundException("Guard not found"));
         guard.setStatus(active ? Guard.Status.ACTIVE : Guard.Status.INACTIVE);
+        if (auditLogger != null) auditLogger.action(null, orgId, null, active ? "ACTIVATE_GUARD" : "DEACTIVATE_GUARD");
         return GuardResponse.from(guard);
     }
 

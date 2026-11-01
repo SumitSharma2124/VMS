@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.vms.common.security.AuditLogger;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class ApprovalService {
@@ -26,14 +29,18 @@ public class ApprovalService {
     private final ApplicationEventPublisher eventPublisher;
     private final VisitCodeGenerator codeGenerator;
     private final long defaultMinutes;
+    private final MeterRegistry meterRegistry;
+    private final AuditLogger auditLogger;
 
+    @Autowired
     public ApprovalService(
             VisitRepository visitRepository,
             AdminRepository adminRepository,
             VisitorService visitorService,
             ApplicationEventPublisher eventPublisher,
             VisitCodeGenerator codeGenerator,
-            @Value("${app.visit.default-minutes:120}") long defaultMinutes
+            @Value("${app.visit.default-minutes:120}") long defaultMinutes,
+            MeterRegistry meterRegistry, AuditLogger auditLogger
     ) {
         this.visitRepository = visitRepository;
         this.adminRepository = adminRepository;
@@ -41,6 +48,15 @@ public class ApprovalService {
         this.eventPublisher = eventPublisher;
         this.codeGenerator = codeGenerator;
         this.defaultMinutes = defaultMinutes;
+        this.meterRegistry = meterRegistry;
+        this.auditLogger = auditLogger;
+    }
+
+    public ApprovalService(VisitRepository visitRepository, AdminRepository adminRepository,
+                           VisitorService visitorService, ApplicationEventPublisher eventPublisher,
+                           VisitCodeGenerator codeGenerator, long defaultMinutes) {
+        this(visitRepository, adminRepository, visitorService, eventPublisher, codeGenerator,
+                defaultMinutes, null, null);
     }
 
     @Transactional
@@ -62,6 +78,8 @@ public class ApprovalService {
         visit.setExpectedEndTime(end);
         visit.setVisitCode(codeGenerator.next());
         eventPublisher.publishEvent(new VisitApprovedEvent(visit.getId(), orgId));
+        if (meterRegistry != null) meterRegistry.counter("vms_visit_requests_total", "status", "APPROVED").increment();
+        if (auditLogger != null) auditLogger.action(adminId, orgId, visitId, "APPROVE_VISIT");
         return summary(visit);
     }
 
@@ -73,6 +91,8 @@ public class ApprovalService {
         visit.setApprovedBy(findAdmin(adminId));
         visit.setApprovedAt(Instant.now());
         eventPublisher.publishEvent(new VisitRejectedEvent(visit.getId(), orgId, request == null ? null : request.reason()));
+        if (meterRegistry != null) meterRegistry.counter("vms_visit_requests_total", "status", "REJECTED").increment();
+        if (auditLogger != null) auditLogger.action(adminId, orgId, visitId, "REJECT_VISIT");
         return summary(visit);
     }
 
@@ -109,6 +129,8 @@ public class ApprovalService {
         VisitLifecycle.transition(visit, VisitStatus.APPROVED);
         Visit saved = visitRepository.save(visit);
         eventPublisher.publishEvent(new InvitationEvent(saved.getId(), orgId));
+        if (meterRegistry != null) meterRegistry.counter("vms_visit_requests_total", "status", "APPROVED").increment();
+        if (auditLogger != null) auditLogger.action(adminId, orgId, saved.getId(), "INVITE_VISITOR");
         return summary(saved);
     }
 

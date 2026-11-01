@@ -1,0 +1,31 @@
+{
+  "title": "VMS",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Check-ins",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"expr": "increase(vms_checkins_total[5m])", "legendFormat": "check-ins"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Check-outs",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"expr": "increase(vms_checkouts_total[5m])", "legendFormat": "check-outs"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Overdue visitors",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"expr": "vms_overdue_visits", "legendFormat": "overdue"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Emails",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [{"expr": "increase(vms_emails_total[5m])", "legendFormat": "{{status}}"}]
+    }
+  ]
+}

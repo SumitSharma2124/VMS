@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.vms.common.security.AuditLogger;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -33,24 +35,29 @@ public class GateService {
     private final ApplicationEventPublisher eventPublisher;
     private final long minStaySeconds;
     private final ActiveVisitorService activeVisitorService;
+    private final MeterRegistry meterRegistry;
+    private final AuditLogger auditLogger;
 
     @Autowired
     public GateService(VisitorPassQrRepository passRepository, VisitRepository visitRepository,
                        GuardRepository guardRepository, ApplicationEventPublisher eventPublisher,
                        @Value("${app.gate.min-stay-seconds:30}") long minStaySeconds,
-                       ActiveVisitorService activeVisitorService) {
+                       ActiveVisitorService activeVisitorService, MeterRegistry meterRegistry,
+                       AuditLogger auditLogger) {
         this.passRepository = passRepository;
         this.visitRepository = visitRepository;
         this.guardRepository = guardRepository;
         this.eventPublisher = eventPublisher;
         this.minStaySeconds = minStaySeconds;
         this.activeVisitorService = activeVisitorService;
+        this.meterRegistry = meterRegistry;
+        this.auditLogger = auditLogger;
     }
 
     public GateService(VisitorPassQrRepository passRepository, VisitRepository visitRepository,
                        GuardRepository guardRepository, ApplicationEventPublisher eventPublisher,
                        long minStaySeconds) {
-        this(passRepository, visitRepository, guardRepository, eventPublisher, minStaySeconds, null);
+        this(passRepository, visitRepository, guardRepository, eventPublisher, minStaySeconds, null, null, null);
     }
 
     @Transactional
@@ -81,6 +88,8 @@ public class GateService {
             VisitLifecycle.transition(visit, VisitStatus.CHECKED_IN);
             visit.setCheckInTime(now);
             visit.setCheckInGuard(guard);
+            if (meterRegistry != null) meterRegistry.counter("vms_checkins_total").increment();
+            if (auditLogger != null) auditLogger.action(principal.userId(), principal.orgId(), visit.getId(), "CHECK_IN");
             eventPublisher.publishEvent(new VisitCheckedInEvent(principal.orgId(), visit.getId()));
             result = result(ScanResult.Decision.CHECKED_IN, "Entry approved", visit, principal.orgId());
         } else if (visit.getStatus() == VisitStatus.CHECKED_IN || visit.getStatus() == VisitStatus.OVERDUE) {
@@ -92,6 +101,8 @@ public class GateService {
                 visit.setCheckOutTime(now);
                 visit.setCheckOutGuard(guard);
                 pass.setValid(false);
+                if (meterRegistry != null) meterRegistry.counter("vms_checkouts_total").increment();
+                if (auditLogger != null) auditLogger.action(principal.userId(), principal.orgId(), visit.getId(), "CHECK_OUT");
                 eventPublisher.publishEvent(new VisitCheckedOutEvent(principal.orgId(), visit.getId()));
                 result = result(ScanResult.Decision.CHECKED_OUT, "Exit approved", visit, principal.orgId());
             }
@@ -106,6 +117,7 @@ public class GateService {
         log.info("Guard scan: guardId={}, visitId={}, decision={}", principal.userId(), visit.getId(), result.decision());
         return result;
     }
+
 
     @Transactional(readOnly = true)
     public GuardOverview overview(Long orgId) {

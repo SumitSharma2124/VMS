@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Component
 public class OverdueScheduler {
@@ -22,9 +24,20 @@ public class OverdueScheduler {
 
     public OverdueScheduler(VisitRepository visitRepository, ApplicationEventPublisher eventPublisher,
                             ActiveVisitorService activeVisitorService) {
+        this(visitRepository, eventPublisher, activeVisitorService, null);
+    }
+
+    @Autowired
+    public OverdueScheduler(VisitRepository visitRepository, ApplicationEventPublisher eventPublisher,
+                            ActiveVisitorService activeVisitorService, MeterRegistry meterRegistry) {
         this.visitRepository = visitRepository;
         this.eventPublisher = eventPublisher;
         this.activeVisitorService = activeVisitorService;
+        if (meterRegistry != null) {
+            io.micrometer.core.instrument.Gauge.builder("vms_overdue_visits", visitRepository,
+                    repository -> repository.countByStatus(VisitStatus.OVERDUE))
+                    .register(meterRegistry);
+        }
     }
 
     @Scheduled(fixedRate = 60_000)

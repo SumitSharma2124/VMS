@@ -46,3 +46,6 @@ backend/**/hs_err_pid*
 # Test and coverage output
 coverage/
 *.lcov
+
+# Local TLS certificates
+infra/nginx/certs/

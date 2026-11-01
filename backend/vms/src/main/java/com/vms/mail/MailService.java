@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import io.micrometer.core.instrument.MeterRegistry;
 
 @Service
 public class MailService {
@@ -28,23 +29,26 @@ public class MailService {
     private final JavaMailSender mailSender;
     private final String from;
     private final String frontendUrl;
+    private final MeterRegistry meterRegistry;
 
     @Autowired
     public MailService(EmailLogRepository emailLogRepository, VisitRepository visitRepository,
                        PassService passService, JavaMailSender mailSender,
                        @Value("${app.mail-from}") String from,
-                       @Value("${app.frontend-url}") String frontendUrl) {
+                       @Value("${app.frontend-url}") String frontendUrl,
+                       MeterRegistry meterRegistry) {
         this.emailLogRepository = emailLogRepository;
         this.visitRepository = visitRepository;
         this.passService = passService;
         this.mailSender = mailSender;
         this.from = from;
         this.frontendUrl = frontendUrl;
+        this.meterRegistry = meterRegistry;
     }
 
     public MailService(EmailLogRepository emailLogRepository, VisitRepository visitRepository,
                        PassService passService, JavaMailSender mailSender, String from) {
-        this(emailLogRepository, visitRepository, passService, mailSender, from, "http://localhost:5173");
+        this(emailLogRepository, visitRepository, passService, mailSender, from, "http://localhost:5173", null);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -82,11 +86,13 @@ public class MailService {
             mailSender.send(message);
             log.setStatus(EmailStatus.SENT);
             log.setSentAt(Instant.now());
+            if (meterRegistry != null) meterRegistry.counter("vms_emails_total", "status", "SENT").increment();
         } catch (Exception exception) {
             log.setStatus(EmailStatus.FAILED);
             log.setAttempts(log.getAttempts() + 1);
             String message = exception.getMessage();
             log.setLastError(message == null ? exception.getClass().getSimpleName() : message.substring(0, Math.min(500, message.length())));
+            if (meterRegistry != null) meterRegistry.counter("vms_emails_total", "status", "FAILED").increment();
         }
         emailLogRepository.save(log);
     }
@@ -115,7 +121,6 @@ public class MailService {
         String visitor = escape(visit.getVisitor().getFullName());
         String org = escape(visit.getOrg().getName());
         String host = escape(visit.getHostName());
-        String passUrl = escape(frontendUrl + "/pass?token=" + pass.getQrCodeValue());
         if (log.getType() == EmailType.REJECTION) {
             String reason = log.getRejectionReason() == null ? "" : "<p>Reason: " + escape(log.getRejectionReason()) + "</p>";
             return """
@@ -127,6 +132,7 @@ public class MailService {
                     </body></html>
                     """.formatted(visitor, org, reason);
         }
+        String passUrl = escape(frontendUrl + "/pass?token=" + pass.getQrCodeValue());
         String invitation = log.getType() == EmailType.INVITATION ? "<p>You have been invited by " + org + ".</p>" : "";
         return """
                 <!doctype html>

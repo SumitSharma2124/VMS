@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.time.Instant;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class VisitService {
@@ -23,17 +25,26 @@ public class VisitService {
     private final VisitorService visitorService;
     private final VisitRepository visitRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final MeterRegistry meterRegistry;
 
+    @Autowired
     public VisitService(
             OrganizationRepository organizationRepository,
             VisitorService visitorService,
             VisitRepository visitRepository,
-            ApplicationEventPublisher eventPublisher
+            ApplicationEventPublisher eventPublisher,
+            MeterRegistry meterRegistry
     ) {
         this.organizationRepository = organizationRepository;
         this.visitorService = visitorService;
         this.visitRepository = visitRepository;
         this.eventPublisher = eventPublisher;
+        this.meterRegistry = meterRegistry;
+    }
+
+    public VisitService(OrganizationRepository organizationRepository, VisitorService visitorService,
+                        VisitRepository visitRepository, ApplicationEventPublisher eventPublisher) {
+        this(organizationRepository, visitorService, visitRepository, eventPublisher, null);
     }
 
     @Transactional
@@ -58,6 +69,7 @@ public class VisitService {
             visit.setExpectedEndTime(request.expectedEndTime());
         }
         Visit saved = visitRepository.save(visit);
+        if (meterRegistry != null) meterRegistry.counter("vms_visit_requests_total", "status", "REQUESTED").increment();
         eventPublisher.publishEvent(new VisitRequestedEvent(
                 org.getId(), saved.getId(), visitor.getFullName(), saved.getHostName()
         ));

@@ -23,6 +23,8 @@ public interface VisitRepository extends JpaRepository<Visit, Long>, JpaSpecific
 
     long countByOrgIdAndStatusIn(Long orgId, Collection<VisitStatus> statuses);
 
+    long countByStatus(VisitStatus status);
+
     @EntityGraph(attributePaths = "visitor")
     @Query("select v from Visit v where v.org.id = :orgId and v.status in :statuses order by v.expectedEndTime asc")
     List<Visit> findByOrgIdAndStatusIn(@Param("orgId") Long orgId, @Param("statuses") Collection<VisitStatus> statuses);
