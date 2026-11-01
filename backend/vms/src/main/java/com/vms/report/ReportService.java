@@ -62,7 +62,10 @@ public class ReportService {
                         "group by 1 order by 1")
                 .setParameter("tz", organization.getTimezone()).setParameter("org", orgId)
                 .setParameter("from", start).setParameter("to", end).getResultList()) {
-            daily.put(((java.sql.Date) row[0]).toLocalDate(), ((Number) row[1]).longValue());
+            LocalDate date = row[0] instanceof LocalDate localDate
+                    ? localDate
+                    : ((java.sql.Date) row[0]).toLocalDate();
+            daily.put(date, ((Number) row[1]).longValue());
         }
         List<ReportSummary.DailyTotal> trend = new ArrayList<>();
         for (LocalDate date = from; date.isBefore(to.plusDays(1)); date = date.plusDays(1)) {
