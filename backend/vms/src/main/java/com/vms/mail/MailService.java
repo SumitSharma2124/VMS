@@ -73,12 +73,12 @@ public class MailService {
             helper.setTo(log.getRecipient());
             helper.setSubject(log.getType() == EmailType.REJECTION ? "Visit request update" : "Your VMS visitor pass");
             String body = body(log, pass);
+            helper.setText(body, true);
             if (pass != null) {
                 byte[] png = passService.getPassPng(visit.getOrg().getId(), visit.getId());
                 helper.addInline("passQr", new ByteArrayResource(png), "image/png");
                 helper.addAttachment("visitor-pass.png", new ByteArrayResource(png), "image/png");
             }
-            helper.setText(body, true);
             mailSender.send(message);
             log.setStatus(EmailStatus.SENT);
             log.setSentAt(Instant.now());
