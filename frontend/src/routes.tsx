@@ -17,6 +17,7 @@ import { Scan } from '@/pages/guard/Scan'
 import { Overview } from '@/pages/guard/Overview'
 import { History } from '@/pages/admin/History'
 import { Reports } from '@/pages/admin/Reports'
+import { PublicPass } from '@/pages/PublicPass'
 
 function RootRedirect() {
   const role = useAuthStore((state) => state.role)
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
   { path: '/register-org', element: <RegisterOrg /> },
   { path: '/register', element: <Register /> },
   { path: '/request-sent', element: <RequestSent /> },
+  { path: '/pass', element: <PublicPass /> },
   {
     path: '/admin',
     element: <ProtectedRoute role="ADMIN"><AdminLayout /></ProtectedRoute>,

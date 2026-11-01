@@ -9,6 +9,7 @@ import com.vms.visit.VisitRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -26,15 +27,24 @@ public class MailService {
     private final PassService passService;
     private final JavaMailSender mailSender;
     private final String from;
+    private final String frontendUrl;
 
+    @Autowired
     public MailService(EmailLogRepository emailLogRepository, VisitRepository visitRepository,
                        PassService passService, JavaMailSender mailSender,
-                       @Value("${app.mail-from}") String from) {
+                       @Value("${app.mail-from}") String from,
+                       @Value("${app.frontend-url}") String frontendUrl) {
         this.emailLogRepository = emailLogRepository;
         this.visitRepository = visitRepository;
         this.passService = passService;
         this.mailSender = mailSender;
         this.from = from;
+        this.frontendUrl = frontendUrl;
+    }
+
+    public MailService(EmailLogRepository emailLogRepository, VisitRepository visitRepository,
+                       PassService passService, JavaMailSender mailSender, String from) {
+        this(emailLogRepository, visitRepository, passService, mailSender, from, "http://localhost:5173");
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -105,6 +115,7 @@ public class MailService {
         String visitor = escape(visit.getVisitor().getFullName());
         String org = escape(visit.getOrg().getName());
         String host = escape(visit.getHostName());
+        String passUrl = escape(frontendUrl + "/pass?token=" + pass.getQrCodeValue());
         if (log.getType() == EmailType.REJECTION) {
             String reason = log.getRejectionReason() == null ? "" : "<p>Reason: " + escape(log.getRejectionReason()) + "</p>";
             return """
@@ -132,10 +143,11 @@ public class MailService {
                   </table>
                   <p><strong>Show this QR to the guard at the gate.</strong></p>
                   <p><img src="cid:passQr" alt="Visitor pass QR code"></p>
+                  <p><a href="%s" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 20px;text-decoration:none;border-radius:6px">View digital pass</a></p>
                 </body>
                 </html>
                 """.formatted(visitor, invitation, host, org, escape(visit.getVisitCode()),
-                        escape(visit.getPurpose()), escape(String.valueOf(visit.getExpectedEndTime())));
+                        escape(visit.getPurpose()), escape(String.valueOf(visit.getExpectedEndTime())), passUrl);
     }
 
     private String escape(String value) {
