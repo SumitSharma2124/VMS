@@ -1,5 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
 const items = [
   ['Dashboard', '/admin'],
@@ -14,6 +16,11 @@ const items = [
 export function AdminLayout() {
   const navigate = useNavigate()
   const { name, logout } = useAuthStore()
+  const unread = useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: async () => (await api.get<{ count: number }>('/admin/notifications/unread-count')).data.count,
+    refetchInterval: 60000,
+  })
   return (
     <div className="flex min-h-screen bg-muted/30">
       <aside className="w-60 border-r bg-background p-4">
@@ -37,6 +44,7 @@ export function AdminLayout() {
         <header className="flex h-16 items-center justify-between border-b bg-background px-6">
           <span className="text-sm text-muted-foreground">Organization admin</span>
           <div className="flex items-center gap-4">
+            <span aria-label="Unread notifications" className="text-sm">Notifications {unread.data ? `(${unread.data})` : ''}</span>
             <span className="text-sm">{name}</span>
             <button
               className="text-sm text-muted-foreground hover:text-foreground"

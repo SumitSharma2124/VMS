@@ -10,10 +10,13 @@ import { Invite } from '@/pages/admin/Invite'
 import { Register } from '@/pages/Register'
 import { RequestSent } from '@/pages/RequestSent'
 import { AdminHome, NotFound } from '@/pages/Placeholders'
+import { Dashboard } from '@/pages/admin/Dashboard'
 import { useAuthStore } from '@/store/auth'
 import { GuardLayout } from '@/layouts/GuardLayout'
 import { Scan } from '@/pages/guard/Scan'
 import { Overview } from '@/pages/guard/Overview'
+import { History } from '@/pages/admin/History'
+import { Reports } from '@/pages/admin/Reports'
 
 function RootRedirect() {
   const role = useAuthStore((state) => state.role)
@@ -29,11 +32,13 @@ const router = createBrowserRouter([
     path: '/admin',
     element: <ProtectedRoute role="ADMIN"><AdminLayout /></ProtectedRoute>,
     children: [
-      { index: true, element: <AdminHome /> },
+      { index: true, element: <Dashboard /> },
       { path: 'approvals', element: <Approvals /> },
       { path: 'invite', element: <Invite /> },
       { path: 'organization', element: <OrgSetup /> },
       { path: 'guards', element: <Guards /> },
+      { path: 'history', element: <History /> },
+      { path: 'reports', element: <Reports /> },
       { path: '*', element: <AdminHome /> },
     ],
   },

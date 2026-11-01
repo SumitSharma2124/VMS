@@ -11,7 +11,9 @@ import com.vms.visit.Visit;
 import com.vms.visit.VisitLifecycle;
 import com.vms.visit.VisitRepository;
 import com.vms.visit.VisitStatus;
+import com.vms.tracking.ActiveVisitorService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,15 +32,25 @@ public class GateService {
     private final GuardRepository guardRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final long minStaySeconds;
+    private final ActiveVisitorService activeVisitorService;
 
+    @Autowired
     public GateService(VisitorPassQrRepository passRepository, VisitRepository visitRepository,
                        GuardRepository guardRepository, ApplicationEventPublisher eventPublisher,
-                       @Value("${app.gate.min-stay-seconds:30}") long minStaySeconds) {
+                       @Value("${app.gate.min-stay-seconds:30}") long minStaySeconds,
+                       ActiveVisitorService activeVisitorService) {
         this.passRepository = passRepository;
         this.visitRepository = visitRepository;
         this.guardRepository = guardRepository;
         this.eventPublisher = eventPublisher;
         this.minStaySeconds = minStaySeconds;
+        this.activeVisitorService = activeVisitorService;
+    }
+
+    public GateService(VisitorPassQrRepository passRepository, VisitRepository visitRepository,
+                       GuardRepository guardRepository, ApplicationEventPublisher eventPublisher,
+                       long minStaySeconds) {
+        this(passRepository, visitRepository, guardRepository, eventPublisher, minStaySeconds, null);
     }
 
     @Transactional
@@ -105,7 +117,7 @@ public class GateService {
                 .map(visit -> new GuardOverview.OverdueVisit(
                         visit.getVisitor().getFullName(), visit.getHostName(), visit.getExpectedEndTime()))
                 .toList();
-        return new GuardOverview(active.size(), overdue);
+        return new GuardOverview(activeVisitorService == null ? active.size() : activeVisitorService.count(orgId), overdue);
     }
 
     private ScanResult result(ScanResult.Decision decision, String message, Visit visit, Long orgId) {

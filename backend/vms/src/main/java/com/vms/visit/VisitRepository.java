@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.Collection;
 
 import jakarta.persistence.LockModeType;
 
-public interface VisitRepository extends JpaRepository<Visit, Long> {
+public interface VisitRepository extends JpaRepository<Visit, Long>, JpaSpecificationExecutor<Visit> {
 
     List<Visit> findByOrgIdAndStatusOrderByRequestedAtAsc(Long orgId, VisitStatus status);
 
@@ -22,8 +23,12 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
 
     long countByOrgIdAndStatusIn(Long orgId, Collection<VisitStatus> statuses);
 
+    @EntityGraph(attributePaths = "visitor")
     @Query("select v from Visit v where v.org.id = :orgId and v.status in :statuses order by v.expectedEndTime asc")
     List<Visit> findByOrgIdAndStatusIn(@Param("orgId") Long orgId, @Param("statuses") Collection<VisitStatus> statuses);
+
+    @Query("select v from Visit v where v.status = com.vms.visit.VisitStatus.CHECKED_IN and v.expectedEndTime < :now")
+    List<Visit> findCheckedInPastExpectedEnd(@Param("now") java.time.Instant now);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select v from Visit v where v.id = :visitId")
