@@ -89,7 +89,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(java.util.List.of(frontendUrl));
         configuration.setAllowedMethods(java.util.List.of(
                 HttpMethod.GET.name(), HttpMethod.POST.name(), HttpMethod.PUT.name(),
-                HttpMethod.PATCH.name(), HttpMethod.DELETE.name(), HttpMethod.OPTIONS.name()
+                HttpMethod.PATCH.name(), HttpMethod.DELETE.name()
         ));
         configuration.setAllowedHeaders(java.util.List.of(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE));
         configuration.setAllowCredentials(true);

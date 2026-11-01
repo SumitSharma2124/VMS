@@ -69,6 +69,6 @@ public class OrgController {
             @PathVariable Long id,
             @RequestBody GuardStatusRequest request
     ) {
-        return orgService.setGuardStatus(principal.orgId(), id, request.active());
+        return orgService.setGuardStatus(principal.orgId(), principal.userId(), id, request.active());
     }
 }

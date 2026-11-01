@@ -26,6 +26,21 @@
       "title": "Emails",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "targets": [{"expr": "increase(vms_emails_total[5m])", "legendFormat": "{{status}}"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Visit requests",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "targets": [{"expr": "increase(vms_visit_requests_total[5m])", "legendFormat": "{{status}}"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP p95 latency",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket[5m])))",
+        "legendFormat": "p95"
+      }]
     }
   ]
 }

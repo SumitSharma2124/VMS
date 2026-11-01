@@ -153,11 +153,11 @@ public class OrgService {
     }
 
     @Transactional
-    public GuardResponse setGuardStatus(Long orgId, Long guardId, boolean active) {
+    public GuardResponse setGuardStatus(Long orgId, Long adminId, Long guardId, boolean active) {
         Guard guard = guardRepository.findByGuardIdAndOrgId(guardId, orgId)
                 .orElseThrow(() -> new NotFoundException("Guard not found"));
         guard.setStatus(active ? Guard.Status.ACTIVE : Guard.Status.INACTIVE);
-        if (auditLogger != null) auditLogger.action(null, orgId, null, active ? "ACTIVATE_GUARD" : "DEACTIVATE_GUARD");
+        if (auditLogger != null) auditLogger.action(adminId, orgId, null, active ? "ACTIVATE_GUARD" : "DEACTIVATE_GUARD");
         return GuardResponse.from(guard);
     }
 
