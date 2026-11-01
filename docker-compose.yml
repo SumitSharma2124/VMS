@@ -39,11 +39,6 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       REDIS_HOST: redis
-      MAIL_HOST: mailpit
-      MAIL_PORT: 1025
-      MAIL_SMTP_AUTH: "false"
-      MAIL_SMTP_STARTTLS: "false"
-      MAIL_SMTP_STARTTLS_REQUIRED: "false"
       SPRING_PROFILES_ACTIVE: container
     depends_on:
       postgres:
