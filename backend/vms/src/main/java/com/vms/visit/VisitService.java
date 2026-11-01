@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.time.Instant;
 
 @Service
 public class VisitService {
@@ -51,11 +52,23 @@ public class VisitService {
         visit.setHostName(request.hostName().trim());
         visit.setPurpose(request.purpose().trim());
         visit.setStatus(VisitStatus.REQUESTED);
+        if (request.expectedStartTime() != null || request.expectedEndTime() != null) {
+            validateDuration(request.expectedStartTime(), request.expectedEndTime());
+            visit.setExpectedStartTime(request.expectedStartTime());
+            visit.setExpectedEndTime(request.expectedEndTime());
+        }
         Visit saved = visitRepository.save(visit);
         eventPublisher.publishEvent(new VisitRequestedEvent(
                 org.getId(), saved.getId(), visitor.getFullName(), saved.getHostName()
         ));
         return new VisitRequestResponse(saved.getId(), saved.getStatus());
+    }
+
+    private void validateDuration(Instant start, Instant end) {
+        Instant now = Instant.now();
+        if (start == null || end == null || !start.isAfter(now) || !end.isAfter(start)) {
+            throw new ConflictException("Visit duration must be in the future and end after start");
+        }
     }
 
     @Transactional(readOnly = true)

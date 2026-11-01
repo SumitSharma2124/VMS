@@ -55,6 +55,9 @@ public class Visit {
     @Column(name = "expected_end_time")
     private Instant expectedEndTime;
 
+    @Column(name = "expected_start_time")
+    private Instant expectedStartTime;
+
     @Column(name = "check_in_time")
     private Instant checkInTime;
 

@@ -5,6 +5,8 @@ import { RegisterOrg } from '@/pages/RegisterOrg'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { OrgSetup } from '@/pages/admin/OrgSetup'
 import { Guards } from '@/pages/admin/Guards'
+import { Approvals } from '@/pages/admin/Approvals'
+import { Invite } from '@/pages/admin/Invite'
 import { Register } from '@/pages/Register'
 import { RequestSent } from '@/pages/RequestSent'
 import { AdminHome, GuardHome, NotFound } from '@/pages/Placeholders'
@@ -25,6 +27,8 @@ const router = createBrowserRouter([
     element: <ProtectedRoute role="ADMIN"><AdminLayout /></ProtectedRoute>,
     children: [
       { index: true, element: <AdminHome /> },
+      { path: 'approvals', element: <Approvals /> },
+      { path: 'invite', element: <Invite /> },
       { path: 'organization', element: <OrgSetup /> },
       { path: 'guards', element: <Guards /> },
       { path: '*', element: <AdminHome /> },

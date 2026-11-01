@@ -17,7 +17,23 @@ const visitSchema = z.object({
   contactNumber: z.string().regex(/^\+?\d{7,15}$/, 'Enter a valid phone number'),
   hostName: z.string().min(1, 'Host name is required'),
   purpose: z.string().min(1, 'Purpose is required').max(255),
+  expectedStartTime: z.string().min(1, 'Start time is required'),
+  expectedEndTime: z.string().min(1, 'End time is required'),
+}).superRefine((values, context) => {
+  if (values.expectedStartTime && values.expectedEndTime
+      && new Date(values.expectedEndTime) <= new Date(values.expectedStartTime)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['expectedEndTime'],
+      message: 'End time must be after the start time',
+    })
+  }
 })
+
+function localDateTimeValue(date: Date) {
+  const offset = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+}
 
 type VisitValues = z.infer<typeof visitSchema>
 type OrgInfo = { name: string }
@@ -34,8 +50,9 @@ export function Register() {
   })
   const form = useForm<VisitValues>({
     resolver: zodResolver(visitSchema),
-    defaultValues: { email: '', fullName: '', contactNumber: '', hostName: '', purpose: '' },
+    defaultValues: { email: '', fullName: '', contactNumber: '', hostName: '', purpose: '', expectedStartTime: '', expectedEndTime: '' },
   })
+  const expectedStartTime = form.watch('expectedStartTime')
   const org = useQuery({
     queryKey: ['public-org', orgSlug],
     queryFn: async () => (await api.get<OrgInfo>(`/public/orgs/${encodeURIComponent(orgSlug)}`)).data,
@@ -55,7 +72,12 @@ export function Register() {
     },
   })
   const create = useMutation({
-    mutationFn: (values: VisitValues) => api.post('/public/visits', { ...values, orgSlug }),
+    mutationFn: (values: VisitValues) => api.post('/public/visits', {
+      ...values,
+      orgSlug,
+      expectedStartTime: new Date(values.expectedStartTime).toISOString(),
+      expectedEndTime: new Date(values.expectedEndTime).toISOString(),
+    }),
     onSuccess: () => navigate('/request-sent', { replace: true }),
   })
   useEffect(() => {
@@ -66,6 +88,19 @@ export function Register() {
       })
     }
   }, [create.error, form])
+  useEffect(() => {
+    if (org.data?.name && !form.getValues('hostName')) {
+      form.setValue('hostName', org.data.name)
+    }
+  }, [form, org.data?.name])
+  useEffect(() => {
+    if (step === 2 && !form.getValues('expectedStartTime')) {
+      const start = new Date(Date.now() + 60 * 60 * 1000)
+      const end = new Date(start.getTime() + 2 * 60 * 60 * 1000)
+      form.setValue('expectedStartTime', localDateTimeValue(start))
+      form.setValue('expectedEndTime', localDateTimeValue(end))
+    }
+  }, [form, step])
 
   if (!orgSlug || org.isError) {
     return <MessageCard message="Organization not found" />
@@ -108,6 +143,18 @@ export function Register() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" readOnly {...form.register('email')} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="expectedStartTime">Visit from</Label>
+                  <Input id="expectedStartTime" type="datetime-local" min={localDateTimeValue(new Date(Date.now() + 60 * 1000))} {...form.register('expectedStartTime')} />
+                  {form.formState.errors.expectedStartTime && <p className="text-sm text-destructive">{form.formState.errors.expectedStartTime.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="expectedEndTime">Visit to</Label>
+                  <Input id="expectedEndTime" type="datetime-local" min={expectedStartTime || undefined} {...form.register('expectedEndTime')} />
+                  {form.formState.errors.expectedEndTime && <p className="text-sm text-destructive">{form.formState.errors.expectedEndTime.message}</p>}
+                </div>
               </div>
               {create.isError && <p className="text-sm text-destructive">{errorMessage(create.error)}</p>}
               <Button className="w-full" type="submit" disabled={create.isPending}>

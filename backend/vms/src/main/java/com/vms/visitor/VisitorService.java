@@ -24,24 +24,29 @@ public class VisitorService {
 
     @Transactional
     public Visitor upsert(Organization org, CreateVisitRequest request) {
-        String email = normalize(request.email());
-        Optional<Visitor> existing = visitorRepository.findByOrgIdAndEmailIgnoreCase(org.getId(), email);
+        return upsert(org, request.fullName(), request.email(), request.contactNumber());
+    }
+
+    @Transactional
+    public Visitor upsert(Organization org, String fullName, String email, String contactNumber) {
+        String normalizedEmail = normalize(email);
+        Optional<Visitor> existing = visitorRepository.findByOrgIdAndEmailIgnoreCase(org.getId(), normalizedEmail);
         if (existing.isPresent()) {
             Visitor visitor = existing.get();
-            visitor.setFullName(request.fullName().trim());
-            visitor.setContactNumber(request.contactNumber().trim());
+            visitor.setFullName(fullName.trim());
+            visitor.setContactNumber(contactNumber.trim());
             return visitor;
         }
 
         Visitor visitor = new Visitor();
         visitor.setOrg(org);
-        visitor.setFullName(request.fullName().trim());
-        visitor.setEmail(email);
-        visitor.setContactNumber(request.contactNumber().trim());
+        visitor.setFullName(fullName.trim());
+        visitor.setEmail(normalizedEmail);
+        visitor.setContactNumber(contactNumber.trim());
         try {
             return visitorRepository.saveAndFlush(visitor);
         } catch (DataIntegrityViolationException exception) {
-            return visitorRepository.findByOrgIdAndEmailIgnoreCase(org.getId(), email)
+            return visitorRepository.findByOrgIdAndEmailIgnoreCase(org.getId(), normalizedEmail)
                     .orElseThrow(() -> exception);
         }
     }
