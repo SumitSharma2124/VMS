@@ -107,19 +107,34 @@ public class MailService {
         String host = escape(visit.getHostName());
         if (log.getType() == EmailType.REJECTION) {
             String reason = log.getRejectionReason() == null ? "" : "<p>Reason: " + escape(log.getRejectionReason()) + "</p>";
-            return "<p>Hello " + visitor + ",</p><p>Your visit request for " + org + " was not approved.</p>" + reason;
+            return """
+                    <!doctype html>
+                    <html><body>
+                    <p>Hello %s,</p>
+                    <p>Your visit request for <strong>%s</strong> was not approved.</p>
+                    %s
+                    </body></html>
+                    """.formatted(visitor, org, reason);
         }
         String invitation = log.getType() == EmailType.INVITATION ? "<p>You have been invited by " + org + ".</p>" : "";
         return """
-                <p>Hello %s,</p>
-                %s
-                <p>Your visit with %s has been approved.</p>
-                <p>Visit code: %s</p>
-                <p>Purpose: %s</p>
-                <p>Expected end: %s</p>
-                <p>Show this QR to the guard at the gate.</p>
-                <img src="cid:passQr" alt="Visitor pass QR">
-                """.formatted(visitor, invitation, host, escape(visit.getVisitCode()),
+                <!doctype html>
+                <html>
+                <body style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
+                  <h2>Your visitor pass is ready</h2>
+                  <p>Hello %s,</p>
+                  %s
+                  <p>Your visit with <strong>%s</strong> at <strong>%s</strong> has been approved.</p>
+                  <table>
+                    <tr><td><strong>Visit code:</strong></td><td>%s</td></tr>
+                    <tr><td><strong>Purpose:</strong></td><td>%s</td></tr>
+                    <tr><td><strong>Expected end:</strong></td><td>%s</td></tr>
+                  </table>
+                  <p><strong>Show this QR to the guard at the gate.</strong></p>
+                  <p><img src="cid:passQr" alt="Visitor pass QR code"></p>
+                </body>
+                </html>
+                """.formatted(visitor, invitation, host, org, escape(visit.getVisitCode()),
                         escape(visit.getPurpose()), escape(String.valueOf(visit.getExpectedEndTime())));
     }
 
