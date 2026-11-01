@@ -73,13 +73,6 @@ services:
       frontend:
         condition: service_started
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate --url https://nginx:443 --no-tls-verify
-    depends_on:
-      nginx:
-        condition: service_started
-
   prometheus:
     image: prom/prometheus
     ports:
