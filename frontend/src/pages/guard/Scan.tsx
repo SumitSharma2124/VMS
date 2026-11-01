@@ -1,5 +1,5 @@
-import { Scanner } from '@yudiel/react-qr-scanner'
-import { useRef, useState } from 'react'
+import { BrowserQRCodeReader } from '@zxing/browser'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,6 +20,33 @@ const colors = {
   CHECKED_OUT: 'border-blue-500 bg-blue-50',
   DENIED: 'border-red-500 bg-red-50',
   INVALID: 'border-red-500 bg-red-50',
+}
+
+function QrCamera({ onScan, onError }: { onScan: (value: string) => void; onError: (error: Error) => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const reader = new BrowserQRCodeReader()
+    let controls: { stop: () => void } | undefined
+    let cancelled = false
+    reader.decodeFromConstraints(
+      { video: { facingMode: { ideal: 'environment' } } },
+      videoRef.current!,
+      (result, error) => {
+        if (result) onScan(result.getText())
+        else if (error && error.name !== 'NotFoundException') onError(error)
+      },
+    ).then((value) => {
+      if (cancelled) value.stop()
+      else controls = value
+    }).catch((error: unknown) => onError(error instanceof Error ? error : new Error('Unable to access camera')))
+    return () => {
+      cancelled = true
+      controls?.stop()
+    }
+  }, [onScan, onError])
+
+  return <video ref={videoRef} className="w-full rounded-md" muted playsInline autoPlay />
 }
 
 export function Scan() {
@@ -51,15 +78,11 @@ export function Scan() {
     <Card>
       <CardHeader><CardTitle>Scan visitor pass</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        {!cameraError && !result ? <Scanner
-          constraints={{ facingMode: { ideal: 'environment' } }}
-          formats={['qr_code']}
-          paused={Boolean(result)}
-          onScan={(codes) => codes[0]?.rawValue && submit(codes[0].rawValue)}
+        {!cameraError && !result ? <QrCamera
+          onScan={submit}
           onError={(error) => {
-            setCameraErrorMessage(`${error.kind}: ${error.message}`)
-            setCameraError(['permission-denied', 'no-camera', 'in-use', 'overconstrained',
-              'insecure-context', 'unsupported', 'security', 'type-error'].includes(error.kind))
+            setCameraErrorMessage(`${error.name}: ${error.message}`)
+            setCameraError(true)
           }}
         /> : <div className="space-y-3 rounded-md border p-5 text-sm">
           <p>Camera access failed or the QR code could not be read.</p>
